@@ -2,6 +2,7 @@
 
 **Data Analysis with Statistical Software** · Dr. Orit Rafaeli · Summer 2026
 Midterm (EDA) and Final (Predictive Modelling + Causal Inference) projects
+
 submit: Itamar Hoshen · Elad Maisi · Ariel Koritcher
 
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)

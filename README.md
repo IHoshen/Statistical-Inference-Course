@@ -1,7 +1,7 @@
 # Used Toyota Corolla Prices — Exploration, Prediction, and the Limits of a Causal Reading
 
 **Data Analysis with Statistical Software** · Dr. Orit Rafaeli · Summer 2026
-Midterm (EDA) and Final (Predictive Modelling + Causal Inference) projects
+Midterm (EDA) and Final (Predictive Modelling + Causal Inference) projects ·
 
 submit: Itamar Hoshen · Elad Maisi · Ariel Koritcher
 

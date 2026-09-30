@@ -1,9 +1,7 @@
 # Used Toyota Corolla Prices — Exploration, Prediction, and the Limits of a Causal Reading
 
-**Data Analysis with Statistical Software** · Dr. Orit Rafaeli · Summer 2026
-Midterm (EDA) and Final (Predictive Modelling + Causal Inference) projects ·
-
-submit: Itamar Hoshen · Elad Maisi · Ariel Koritcher
+**Course:** Data Analysis with Statistical Software (M.Sc.) · Dr. Orit Rafaeli · Summer 2026
+**Team:** Itamar Hoshen · Elad Maisi · Ariel Koritcher
 
 ![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
 ![statsmodels](https://img.shields.io/badge/statsmodels-OLS%20%7C%20HC3%20%7C%20Quantile-8A2BE2)
@@ -11,39 +9,44 @@ submit: Itamar Hoshen · Elad Maisi · Ariel Koritcher
 ![SciPy](https://img.shields.io/badge/SciPy-Kruskal--Wallis%20%7C%20Wilcoxon-0C55A5?logo=scipy&logoColor=white)
 ![Econometrics](https://img.shields.io/badge/Econometrics-OVB%20%7C%20Common%20Support%20%7C%20LATE-2F4F4F)
 
+> **About this repo.** The course was graded on **two projects built on the same dataset**, and each has its own folder:
+> - 📁 [`Midterm/`](Midterm/) — **Midterm project:** exploratory data analysis (EDA), no models.
+> - 📁 [`Final/`](Final/) — **Final project:** predictive modelling (Parts A–C) and causal inference (Part D).
+>
+> **TL;DR.** What is a used Corolla worth, and does a factory option *cause* it to be worth more? On 1,436 listings we first **explored** the data without models, then built a **price model** that prices unseen cars to within **≈ 8% (MAE 820 €, $R^2 = 0.900$)**, and finally showed why the same data **cannot** tell us what automatic climate control is worth. The through-line is Shmueli (2010), *To Explain or To Predict?* — two questions that look alike, need different tools, and are judged by different evidence.
+
+| Chapter · Project | The question | The short answer |
+|---|---|---|
+| **1 · Explore** — *Midterm project* | What does the data say before any model? | Age drives price; mileage matters mainly while the car is young |
+| **2 · Predict** — *Final project, Parts A–C* | How well can we price a car we have never seen? | ≈ 8% error. Interactions help, regularisation doesn't, and HC3 rescues inference |
+| **3 · Explain** — *Final project, Part D* | Does automatic A/C *cause* a price premium? | Not identifiable from this data — and we can show exactly why |
+
 ---
 
-## 1. Framework — Two Questions That Look Alike and Are Not
-
-The project rests on one distinction, drawn from **Shmueli (2010), *To Explain or To Predict?*** and held from the first cell to the last.
+## The Framework — Predict ≠ Explain
 
 | | **Prediction** (Parts A–C) | **Causal Inference** (Part D) |
 |---|---|---|
-| Objective | Minimise out-of-sample error | Unbiased estimation of one effect |
-| Criterion | **RMSE in €**, repeated 10-fold CV | **Absence of bias**; *ceteris paribus* |
-| Variable selection | Cross-validation and regularisation — **never** $p$-value filtering | Confounder logic; $p$-values return only to test **covariate balance** |
-| Evidence of success | Holdout error and measured optimism | **SMD**, **common support**, OVB decomposition |
-
-**Headline result.** On 1,429 cars (857 train / 572 holdout), the preferred specification — 45 base predictors plus six forward-selected derived terms — reaches **MAE 820 € (≈ 8%)** and **$R^2 = 0.900$** on a holdout opened exactly once, after the model had been named.
-
-**Two of the most useful results are negative, and are reported as findings.** Regularisation buys nothing here — on the final design cross-validation asks for no penalty at all. And **constant variance fails in every one of nineteen logged runs**; four unrelated remedies were tried and none came close. That *is* the answer — a 20,000 € car is genuinely harder to price than a 5,000 € one — and the response is **HC3**: keep the predictions, repair the inference.
+| Goal | Minimise out-of-sample error | Unbiased estimate of one effect |
+| Judged by | **RMSE in €**, repeated 10-fold CV | **Absence of bias**, *ceteris paribus* |
+| Variable selection | CV and regularisation — **never** $p$-value filtering | Confounder logic; $p$-values only for **covariate balance** |
+| Evidence | Holdout error, measured optimism | **SMD**, **common support**, OVB decomposition |
 
 ---
 
-## 2. Midterm — EDA and Data Storytelling
+## Chapter 1 — Explore: Let the Data Speak First *· Midterm project*
 
-*Scope: `Price`, `Age_08_04`, `KM` only. No models, by assignment design — the deliverable is the evidence that later constrains modelling.*
+*Scope: `Price`, `Age_08_04`, `KM` only. No models by design — the goal is evidence that will later constrain modelling.*
 
-**Audit before analysis.** Five **Verso** records (7-seat MPVs) were excluded as a **population definition, not outlier removal** — a different market segment, not inconvenient prices. One engine size of 16,000 cc was corrected to 1,600 because the model string reads "1.6": the record contained its own correction. Two cars reporting 1 km at ages of 50 and 76 months were **flagged and kept**, then re-tested in sensitivity rather than deleted.
+**Clean with reasons, not convenience.** Five **Verso** records (7-seat MPVs) were excluded as a *different population*, not as outliers. A 16,000 cc engine was corrected to 1,600 — the model string itself reads "1.6". Two cars with 1 km at 50 and 76 months were **flagged, kept**, and re-tested in sensitivity analysis.
 
-**Extreme is not erroneous.** The IQR rule flags 7.4% of prices, but their profile — median age 17 months against 62 — identifies them as young, low-mileage cars: statistically extreme, economically ordinary, and the observations carrying the most information about depreciation. Retained. Price is right-skewed and **no transformation makes it normal** (Box-Cox drives skew to ≈ 0 and normality is still rejected), which is why the midterm runs on rank-based and median-based methods throughout.
+**Extreme is not erroneous.** The IQR rule flags 7.4% of prices, but these are young, low-mileage cars (median age 17 vs 62 months) — the most informative observations about depreciation. Kept. Price is right-skewed and **no transformation makes it normal** (Box-Cox fixes the skew, normality still fails), so the midterm uses rank- and median-based methods throughout.
 
-**Functional form, judged by a number rather than by eye.** Comparing **Pearson with Spearman** turns curvature into a statistic: for age Pearson is the larger ($-0.881$ vs $-0.841$) — close to linear; for mileage the gap **reverses sign** — monotonic but bent. A straight line tracks 32% of the mileage relationship where a **LOESS** smoother tracks 44%.
+**Shape measured, not eyeballed.** Comparing **Pearson vs Spearman** turns curvature into a number: age is close to linear ($-0.881$ vs $-0.841$); for mileage the gap reverses sign — monotonic but bent (**LOESS** explains 44% vs 32% for a straight line).
 
-**Partial correlation separates two correlated predictors.** Controlling for mileage costs age only 8% of its association with price; controlling for age costs mileage 40%. **Roughly two thirds of the apparent mileage–price relationship is age in disguise.** Age also precedes mileage, so KM is partly a **mediator**: a conditional age coefficient is a *direct* effect and understates the total.
+**Two thirds of the mileage effect is age in disguise.** Partial correlation: controlling for mileage costs age 8% of its association with price; controlling for age costs mileage 40%. Since age precedes mileage, KM is partly a **mediator** — a conditional age coefficient is a *direct* effect and understates the total.
 
-### Key insight — the Age × KM interaction and a partial price floor
-Equal-frequency binning (`pd.qcut`) into age tertiles, then **Kruskal–Wallis** within each stratum with **Dunn–Bonferroni** post-hoc:
+**Key insight — mileage matters less as the car ages.** Age tertiles (`pd.qcut`), then **Kruskal–Wallis** per stratum with **Dunn–Bonferroni** post-hoc:
 
 | Age stratum | $\varepsilon^2$ | Median spread across mileage groups |
 |---|---|---|
@@ -51,104 +54,114 @@ Equal-frequency binning (`pd.qcut`) into age tertiles, then **Kruskal–Wallis**
 | Mid (52–67 mo) | 0.114 | 1,050 € |
 | Old (68–80 mo) | **0.070** | **575 €** |
 
-**Finding.** The mileage effect falls by 62% in effect size and contracts more than fourfold in money as cars age. Among old cars, low- and medium-mileage vehicles are **no longer distinguishable** ($p = 0.81$); only the top tier still trades at a discount — a **partial price floor**, not an absolute one. The effect *attenuates*, it does not vanish.
-**Consequence for modelling.** Curvature plus moderation means the final specification must be allowed **interaction terms**, not merely a transformed column.
+The mileage effect shrinks by 62% in effect size and over fourfold in euros. Among old cars, low and medium mileage are **indistinguishable** ($p = 0.81$) — a **partial price floor**. → *The final model must allow **interaction terms**, not just a transformed column.*
 
 ---
 
-## 3. Final Project — Predictive Modelling and the Diagnostic Engine
+## Chapter 2 — Predict: Build a Model You Can Trust *· Final project, Parts A–C*
 
-### 3.1 Pre-registration and data preparation
-**The protocol was fixed before a single model was fitted:** RMSE in € as the primary metric; repeated 10-fold CV on **identical folds** for every candidate; paired **Wilcoxon** with **Holm** correction for any superiority claim; a **one-standard-error rule** with a pre-declared tie-break order; and a **holdout opened exactly once**. The purpose is to remove the degrees of freedom that let an analyst choose, after the fact, the metric under which their favourite model wins.
+### 2.1 Set the rules before playing
+The protocol was **fixed before any model was fitted**: RMSE in € as the metric; repeated 10-fold CV on **identical folds** for every candidate; paired **Wilcoxon + Holm** for any superiority claim; a **one-SE rule** with a pre-declared tie-break; and a **holdout opened exactly once**. This removes the freedom to pick, after the fact, the metric your favourite model wins on.
 
-- **Rank deficiency removed** — age is an exact function of the two manufacture-date columns, so those were dropped rather than left to break the design matrix.
-- **A rule declared before the result was seen.** `Weight` was audited *within specification* — a wagon is legitimately heavier than a hatchback — and exactly two records exceeded the 5 SD cut, against a next-largest deviation of 4.5 SD. $n = 1{,}429$.
-- **Feature engineering from free text.** `Model` yields **Trim** (TERRA < LUNA < SOL, an ordering visible in three independent columns) and **Body** via an alias table; cars with no token become an explicit `Unknown` level rather than being discarded.
-- **The split was verified, not assumed** — 60/40 stratified by price decile, confirmed by KS tests on price, age and mileage, and SHA-256 hashed so no later cell could silently redraw it.
-- **Deliberately absent at this stage:** standardisation lives *inside* the CV pipeline and is refitted per fold (fitting it on the full sample is leakage), and interactions are **specification hypotheses** belonging to Part C.
+**Data preparation, briefly:**
+- **Rank deficiency removed** — age is an exact function of the manufacture-date columns, which were dropped.
+- **Weight audited within specification** (a wagon is legitimately heavier); a rule declared in advance (> 5 SD) caught exactly two mistyped records. $n = 1{,}429$.
+- **Features from free text** — `Model` yields **Trim** (TERRA < LUNA < SOL) and **Body**; missing tokens become an explicit `Unknown` level.
+- **A verified split** — 60/40 (857 / 572), stratified by price decile, checked with KS tests and SHA-256-hashed so no cell could silently redraw it.
+- **No leakage** — standardisation is refitted inside each CV fold.
 
-### 3.2 Regularisation, collinearity, and why the penalty does nothing
-Three models — OLS, Ridge ($L_2$), LASSO ($L_1$) — on the same predictors, rows and **folds**, so any difference is the method and not the split. They finish within 6 € of each other against a standard error of about 20 €.
+### 2.2 Regularisation: the penalty that did nothing
+OLS, Ridge and LASSO on the same predictors and folds finish **within 6 € of each other** (SE ≈ 20 €). With ~19 observations per parameter, OLS is already stable — there is no variance left for shrinkage to buy.
 
-**Why.** With roughly **19 training observations per parameter**, the OLS estimates are already stable; in the bias–variance trade-off there is almost no variance left for shrinkage to buy. Penalties earn their keep when $p/n$ is large — here it is not.
+What LASSO *does* buy is **interpretation**. `Fuel_Type_Diesel` is **positive under OLS, negative under Ridge, zero under LASSO** — a coefficient whose sign depends on the estimator measures collinearity, not diesel engines. The age coefficient, meanwhile, barely moves: **shrinkage acts on noise, not structure.** Stepwise selection (as a contrast only) agrees: forward and backward disagree, and only 15 of 45 predictors survive all procedures.
 
-**What LASSO buys is interpretation, not accuracy.** `Fuel_Type_Diesel`, the worst collinearity offender in the study, comes out **positive under OLS, negative under Ridge, and exactly zero under LASSO**. A coefficient whose *sign* depends on the estimator is not measuring anything about diesel engines. Meanwhile the real signal is untouched: the age coefficient barely moves across all three fits. **Shrinkage is acting on collinear noise, not on structure.** Stepwise selection, run only as a contrast, confirms it — forward and backward disagree, the sets are not nested, and only 15 of 45 predictors survive all three procedures.
+### 2.3 Diagnose: six assumptions, one engine
+Every specification runs through the same pipeline — fit, cross-validate, test six assumptions, log — so differences between runs reflect the **specification**, never the procedure. Each test is paired with an **effect size**, since at this $n$ tests reject trivial departures.
 
-### 3.3 The six-assumption diagnostic sweep
-Every specification passes through one engine — fit, score out of sample on the fixed folds, test six assumptions, log the result — so any difference between two rows of the log is the **specification** and never the procedure. Each rule pairs a **test with an effect size**, because at this sample size the formal tests reject departures far too small to act on.
-
-| | Assumption | Test | Baseline verdict |
+| | Assumption | Test | Baseline |
 |---|---|---|---|
 | A1 | Independence | Durbin–Watson | pass |
-| A2 | Linearity | **Ramsey RESET** | fail |
-| A3 | Homoscedasticity | **Breusch–Pagan** | fail |
-| A4 | Normality of residuals | **Shapiro–Wilk** | fail — through the *tails* only |
-| A5 | No multicollinearity | **VIF** | fail — one named cluster |
-| A6 | Influence | **Cook's $D$** | marginal |
+| A2 | Linearity | Ramsey RESET | fail |
+| A3 | Homoscedasticity | Breusch–Pagan | fail |
+| A4 | Normality | Shapiro–Wilk | fail — *tails* only |
+| A5 | Multicollinearity | VIF | fail — one cluster |
+| A6 | Influence | Cook's $D$ | marginal |
 
-**Five of six fail, and the model still predicts well. The point estimates are usable; the inference around them is not.** That distinction is the whole of Part C. Two details set the agenda for everything after it: normality fails through heavy tails rather than skew, pointing at a robust *loss* instead of a target transformation; and the collinearity is **one cluster, not ten problems**, because diesel Corollas *are* the heavy, large-engine, high-tax cars.
+**Five of six fail, yet the model predicts well: the point estimates are usable, the inference is not.** Heavy tails (not skew) point to a robust *loss* rather than a transformation; the collinearity is **one cluster** — diesel Corollas *are* the heavy, big-engine, high-tax cars.
 
-### 3.4 Three remedies, each aimed at a named failure
+### 2.4 Repair: three remedies, each aimed at a named failure
+- **The specification.** **CCPR plots** show the curvature lies *between* variables. Six **centred cross-products** give the **largest gain in the project (+91 €, ≈ 4 SE)**; seventeen pure powers make things worse. Two lessons: the midterm's advice to transform `KM` was **tested and rejected** (the scatter had blamed mileage for age's curvature), and **VIF pruning must not run on a design containing powers and products** — it deletes Age and Weight at a cost of 375 €.
+- **The response.** $\log(\text{Price})$ with **Duan's smearing** (estimated per fold) helped little and worsened normality — it targeted a skew the residuals never had.
+- **The loss.** **Huber** behaved as predicted: it helped the misspecified model and added nothing to the repaired one. **Quantile regression** revealed that only the **premium end** prices age differently — ~16% steeper per month.
 
-**Remedy 1 — the specification.** **CCPR / partial-residual plots** locate the curvature **between** the variables rather than inside them. Derived terms were built *beside* the originals and on **centred** variables, which keeps main effects interpretable and removes the $x$-versus-$x^2$ collinearity that is an artefact of units. Six cross-products deliver the **largest single gain in the project (+91 €, about four standard errors)**; seventeen pure powers make linearity *worse*, confirming the bend is not inside any one column. Two controls sharpen the lesson: the midterm's own recommendation to transform `KM` was **tested rather than adopted** and costs error — a two-variable scatter had attributed age's curvature to mileage — and **VIF pruning must never be run on a design holding a variable together with its own powers and products**, since it deletes Weight and Age themselves at a cost of 375 €.
+**What survives is HC3.** Heteroscedasticity leaves OLS unbiased but breaks the variance formula. HC3 changes no prediction; it inflates SEs by a median 1.18× and moves **4 of 52 coefficients out of significance** — four conclusions default output would have wrongly supported. Constant variance failed in **all 19 logged runs**: a 20,000 € car is simply harder to price than a 5,000 € one.
 
-**Remedy 2 — the response.** $\log(\text{Price})$, back-transformed with **Duan's smearing factor** estimated inside each fold, because the naive exponential targets the conditional median and under-predicts the mean. On the assumption it was meant to fix it buys almost nothing, and it makes normality *worse* — it was aimed at a right skew the residuals never had.
-
-**What survives is HC3.** Under heteroscedasticity OLS stays unbiased and consistent; what breaks is the variance formula, and with it every standard error and $p$-value. HC3 changes no coefficient and no prediction — it inflates standard errors by a median of 1.18× and moves **four of 52 coefficients out of significance**. A reader trusting default output would have drawn four conclusions the data does not support.
-
-**Remedy 3 — the loss function.** **Huber** was run against a falsifiable prediction: if the heavy tails were misspecification rather than genuine outliers, it should help the broken model and add nothing to the repaired one. That is exactly what happened. **Quantile regression** then answers a question OLS cannot pose — $\tau$ is a conditional percentile, not a confidence level — and finds that **only the premium end of the market prices age differently**, about 16% steeper per month than the conditional mean implies.
-
-### 3.5 Selection and the holdout
-Paired **Wilcoxon on per-car absolute errors** (paired on the *car*, not the fold), **Holm-corrected**, found the top of the table statistically indistinguishable — two candidates that looked significant in isolation did not survive correction. The pre-registered **one-SE rule** then decided among the five candidates inside the ceiling.
-
-**The preferred model came fourth on the holdout, by 6 € — and was not re-crowned.** The paired tests had already called these models indistinguishable, and picking the holdout winner after the fact would convert 572 protected cars into a second validation set. **Optimism is measured rather than asserted, and it is the price of selection:** specifications that chose their own terms on the folds lose 100–112 € between CV and holdout, while models that selected nothing lose 26–56 €.
+### 2.5 Choose, then open the holdout once
+**Wilcoxon on per-car errors** (Holm-corrected) found the top candidates statistically tied; the **one-SE rule** decided. The chosen model — 45 base predictors plus six derived terms — came **fourth on the holdout by 6 €, and was not re-crowned**: doing so would turn the holdout into a second validation set. **Optimism is the price of selection** — models that chose their own terms lost 100–112 € from CV to holdout; models that selected nothing lost 26–56 €.
 
 ---
 
-## 4. Final Project — Econometric Causal Inference
+## Chapter 3 — Explain: Does Automatic A/C *Cause* a Premium? *· Final project, Part D*
 
-**Treatment:** `Automatic_airco` (factory-specified digital climate control), carried by 5.3% of the fleet. Each car has two potential prices and only one is ever observed:
+**Treatment:** `Automatic_airco`, on 5.3% of cars. Each car has two potential prices; we see only one:
 
 $$\underbrace{\mathbb{E}[Y\mid D{=}1]-\mathbb{E}[Y\mid D{=}0]}_{\text{Raw gap} \;=\; 8{,}622\ \text{€}} \;=\; \underbrace{\mathbb{E}[Y(1)-Y(0)\mid D{=}1]}_{\text{ATT}} \;+\; \underbrace{\mathbb{E}[Y(0)\mid D{=}1]-\mathbb{E}[Y(0)\mid D{=}0]}_{\text{Selection bias}}$$
 
-Random assignment is what makes the second term vanish, and **nothing randomised this option** — it was specified on cars the manufacturer already intended for the upper end of the range. *(The 60/40 split was random; that makes the evaluation sets comparable to each other and says nothing about whether treated cars are comparable to untreated ones.)*
+Only randomisation kills the bias term, and **nothing randomised this option** — it was fitted to cars already aimed at the top of the range. *(The 60/40 split was random, but that says nothing about treated vs untreated cars.)*
 
-**The controls absorb 79% of the gap, and what is left is not an effect.** Across four defensible specifications the remainder moves between 1,210 € and 1,975 € — a spread roughly **three times either standard error**. Those standard errors describe sampling variability *at a fixed specification*; they say nothing about variation *across* specifications, which is why the intervals do not overlap in the way their widths suggest.
+**Controls absorb 79% of the gap — and the rest is not an effect.** Across four defensible specifications the remainder ranges **1,210–1,975 €**, a spread ~3× either standard error. SEs measure sampling noise *within* a specification, not uncertainty *across* specifications.
 
-**The bias decomposes exactly, and half of it is age.** The omitted-variable identity reproduces the removed bias to the euro: **age alone accounts for 49%**, with weight, mileage and horsepower making up most of the rest; engine size enters with the *opposite* sign.
+**Half the bias is age.** The OVB identity reproduces the removed bias exactly: **age explains 49%**, weight, mileage and horsepower most of the rest; engine size pushes the other way.
 
-**Common support survives on paper and fails in practice.** No trim level is empty, so positivity formally holds — but **55 of the 76 treated cars sit in a single trim level**, against 2 of 896 in the entry trim. The estimate is therefore not built from 1,429 comparisons: it is a comparison inside one trim plus an extrapolation resting on 21 observations, in a region where the answer is largely determined by **functional form — which Part C chose on predictive grounds**. Twelve of sixteen covariates exceed the $|SMD| > 0.25$ threshold, age most extremely at **−2.09**: treated cars are nearly three years younger, and a linear age term is asked to bridge that displacement after Part C showed the relation is not linear.
+**Common support holds on paper, fails in practice.** **55 of 76 treated cars sit in one trim**, versus 2 of 896 in the entry trim — so the estimate is one within-trim comparison plus an extrapolation from 21 cars, driven by a functional form chosen for *prediction*. Twelve of sixteen covariates exceed $|SMD| > 0.25$; age reaches **−2.09** (treated cars are ~3 years younger).
 
-**Two further sources of bias this file cannot test.** `Airco`, `Boardcomputer` and `CD_Player` are **bad controls** — not causes of the treatment but fellow members of the same factory package, so conditioning on them strips away part of what the buyer is paying for. And every row is a car *offered* for sale, not *sold*: listing price is not transaction price, and a car that sold quickly never entered the file.
+**Biases this data cannot test.** `Airco`, `Boardcomputer` and `CD_Player` are **bad controls** — members of the same factory package, not causes of it. And listings are *offered* prices, not *sold* prices.
 
-**What identification would require.** Not more columns — the missing information is **how the option came to be on the car**: build sheets and the option's list price (the assignment mechanism), transaction price and days-on-lot (a correctly measured outcome), and **exogenous variation** — a model year in which the package became standard (**DiD**), dealer-level supply (**IV**), or a trim boundary above which it was standard (**RD**). None returns the effect for every Corolla: the estimand is a **LATE**, and that locality is already visible in the data.
-
----
-
-## 5. Key Takeaways for a Dealership
-
-1. **Price within a band, not to a point.** The model prices a Corolla to within roughly **8%**, and it runs about 100 € low on unseen cars under every estimator — a property of the split, not of any model. Add the offset and treat the estimate as the centre of a band.
-2. **Data quality is a bigger lever than model choice.** Two mistyped weight records cost more cross-validated error than the entire spread between the best and worst estimator in the study, and they collapse the Weight coefficient almost to zero. **Auditing incoming stock records is cheaper than a better algorithm.**
-3. **Depreciation is not one number, and mileage matters most while the car is young.** The monthly age penalty is steeper at the premium end of the market, and the mileage discount contracts more than fourfold between young and old cars — among old cars, low and medium mileage no longer command different prices. Inspect the odometer hard on nearly-new stock; discount its weight on six-year-old stock.
-4. **If a coefficient must be quoted rather than a prediction used, quote Ridge.** On the same specification it costs a few euros of accuracy and returns readable numbers where OLS returns cancelling pairs of ±10,000 €.
+**What identification would need** is not more columns but knowledge of **how the option got onto the car**: build sheets, transaction prices, and **exogenous variation** — a year the package became standard (**DiD**), dealer supply (**IV**), or a trim cut-off (**RD**). Each yields a **LATE**, not an effect for every Corolla.
 
 ---
 
-## 6. Repository Layout and How to Run
+## Epilogue — What It All Means
+
+**For a dealership**
+1. **Price within a band, not to a point** — ≈ 8% error, running ~100 € low on unseen cars under every estimator (a property of the split). Add the offset.
+2. **Data quality beats model choice** — two mistyped weights cost more CV error than the entire gap between best and worst estimator.
+3. **Depreciation is not one number** — steeper at the premium end; mileage matters a lot for young cars and little for old ones.
+4. **If you must quote a coefficient, quote Ridge** — a few euros of accuracy for readable numbers instead of cancelling ±10,000 € pairs.
+
+**Limitations.** No single coefficient of the final model reads on its own — only the fitted surface is identified. Every significance claim relies on HC3. The top candidates are tied, so the final choice rests on a pre-declared rule, not proven superiority. **What the diagnosis bought is not a better model, but knowing exactly what this model can and cannot be asked.**
+
+---
+
+## Toolbox — What This Course Covered, and Where to Find It
+
+| Topic | Methods | Where |
+|---|---|---|
+| EDA & data quality | Population definition, IQR vs. domain logic, Box-Cox, Pearson vs Spearman, LOESS, partial correlation | Midterm |
+| Non-parametric testing | Kruskal–Wallis, Dunn–Bonferroni, $\varepsilon^2$, Wilcoxon + Holm | Midterm; Final 2.5 |
+| Validation protocol | Repeated k-fold CV, stratified holdout, one-SE rule, optimism | Final 2.1, 2.5 |
+| Regularisation | Ridge, LASSO, stepwise (as contrast) | Final 2.2 |
+| Regression diagnostics | Durbin–Watson, RESET, Breusch–Pagan, Shapiro–Wilk, VIF, Cook's $D$, CCPR | Final 2.3–2.4 |
+| Robust modelling | Centred interactions, log + Duan smearing, **HC3**, Huber, quantile regression | Final 2.4 |
+| Causal inference | Potential outcomes, selection bias, OVB, SMD, common support, bad controls, DiD / IV / RD, LATE | Final Part D |
+
+---
+
+## Repository Layout and How to Run
 
 ```
 .
-├── data/
-│   └── Toyota_Corolla_cars.xlsx          # 1,436 listings × 39 columns; target: Price (€)
-├── midterm/
-│   ├── EDA_Toyota_Corolla.pdf            # assignment brief
+├── Data/
+│   └── Toyota_Corolla_cars.xlsx                    # 1,436 listings × 39 columns; target: Price (€)
+├── Midterm/
+│   ├── EDA Toyota Corolla.pdf                      # assignment brief
 │   ├── Midterm_assignment_Preliminary_data_analysis_V4.ipynb
 │   └── Q2_presentation.pptx
-├── final/
-│   ├── Final_task_Toyota_Corolla.pdf     # assignment brief
-│   ├── final_project_analysis.ipynb      # Parts A–D, end to end
+├── Final/
+│   ├── Final_task_Toyota_Corolla_28.8.pdf          # assignment brief
+│   ├── final_project_analysis_v3.ipynb             # Parts A–D, end to end
 │   ├── Toyota_Corolla_Final_Report.pdf
-│   └── Toyota_Corolla_Presentation.pptx
+│   └── Toyota_Corolla_Presentation.pdf
 └── README.md
 ```
 
@@ -158,9 +171,4 @@ pip install pandas numpy scipy statsmodels scikit-learn matplotlib seaborn plotl
 jupyter lab
 ```
 
-**Reproducibility.** Both notebooks depend only on the raw Excel file — no intermediate artefacts — and run end to end. A single seed governs the split and every fold, and the train/holdout partition is hashed so it cannot be silently redrawn. Section numbers map to the assignment (`1.x` = Part A … `4.x` = Part D) and **not** to physical order: the regularisation section sits after the diagnostics by design, because a penalty belongs on the design matrix the model will actually use.
-
----
-
-### Limitations, stated plainly
-No coefficient of the preferred model reads on its own — only the fitted surface is identified. Homoscedasticity fails everywhere, so every significance claim uses HC3. The choice among the top candidates rests on a rule fixed in advance rather than on evidence of superiority, because neither cross-validation nor the holdout could separate them. **What the diagnosis bought is not a better model; it is knowing precisely what this model can and cannot be asked.**
+**Reproducibility.** Both notebooks read only the raw Excel file and run end to end. One seed governs the split and all folds; the partition is hashed. Notebook section numbers follow the assignment (`1.x` = Part A … `4.x` = Part D), not physical order — regularisation deliberately runs after diagnostics, on the design matrix the model actually uses.

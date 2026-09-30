@@ -42,7 +42,7 @@
 
 **Extreme is not erroneous.** The IQR rule flags 7.4% of prices, but these are young, low-mileage cars (median age 17 vs 62 months) — the most informative observations about depreciation. Kept. Price is right-skewed and **no transformation makes it normal** (Box-Cox fixes the skew, normality still fails), so the midterm uses rank- and median-based methods throughout.
 
-**Shape measured, not eyeballed.** Comparing **Pearson vs Spearman** turns curvature into a number: age is close to linear ($-0.881$ vs $-0.841$); for mileage the gap reverses sign — monotonic but bent (**LOESS** explains 44% vs 32% for a straight line).
+**Shape measured, not eyeballed.** Comparing **Pearson vs Spearman** turns curvature into a number: for age Pearson is larger ($-0.881$ vs $-0.841$) — close to linear; for mileage Spearman is larger ($-0.612$ vs $-0.570$) — monotonic but bent. A **LOWESS** smoother tracks 44% of the price variance along mileage vs 32% for a straight line.
 
 **Two thirds of the mileage effect is age in disguise.** Partial correlation: controlling for mileage costs age 8% of its association with price; controlling for age costs mileage 40%. Since age precedes mileage, KM is partly a **mediator** — a conditional age coefficient is a *direct* effect and understates the total.
 
@@ -137,7 +137,7 @@ Only randomisation kills the bias term, and **nothing randomised this option** �
 
 | Topic | Methods | Where |
 |---|---|---|
-| EDA & data quality | Population definition, IQR vs. domain logic, Box-Cox, Pearson vs Spearman, LOESS, partial correlation | Midterm |
+| EDA & data quality | Population definition, IQR vs. domain logic, Box-Cox, Pearson vs Spearman, LOWESS, partial correlation | Midterm |
 | Non-parametric testing | Kruskal–Wallis, Dunn–Bonferroni, $\varepsilon^2$, Wilcoxon + Holm | Midterm; Final 2.5 |
 | Validation protocol | Repeated k-fold CV, stratified holdout, one-SE rule, optimism | Final 2.1, 2.5 |
 | Regularisation | Ridge, LASSO, stepwise (as contrast) | Final 2.2 |
